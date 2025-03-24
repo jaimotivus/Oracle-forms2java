@@ -1,0 +1,148 @@
+// toolbar.component.ts
+import { Component, OnInit, Output, EventEmitter } from '@angular/core';
+import { ConnectionService } from '../../services/connection.service';
+import { UserService } from '../../services/user.service';
+import { Router } from '@angular/router';
+import { catchError } from 'rxjs/operators';
+import { of } from 'rxjs';
+
+/**
+ * ToolbarComponent
+ * 
+ * This component replaces the Oracle Forms toolbar functionality from P_InformaDatosToolbar.
+ * It displays connection information, system date, and current user information.
+ * 
+ * Original Oracle Forms procedure retrieved:
+ * 1. Connection information from Sai_Cat_General table
+ * 2. System date from dual
+ * 3. Current user from dual
+ */
+@Component({
+  selector: 'app-toolbar',
+  templateUrl: './toolbar.component.html',
+  styleUrls: ['./toolbar.component.scss']
+})
+export class ToolbarComponent implements OnInit {
+  // Properties to store toolbar information
+  connectionInfo: string = '';
+  systemDate: Date | null = null;
+  currentUser: string = '';
+  errorMessage: string = '';
+
+  // Event emitter for menu toggle
+  @Output() menuToggle = new EventEmitter<void>();
+
+  constructor(
+    private connectionService: ConnectionService,
+    private userService: UserService,
+    private router: Router
+  ) { }
+
+  /**
+   * Initialize the component by loading all required toolbar data
+   * This replaces the P_InformaDatosToolbar procedure functionality
+   */
+  ngOnInit(): void {
+    this.loadConnectionInfo();
+    this.loadSystemDate();
+    this.loadCurrentUser();
+  }
+
+  /**
+   * Loads connection information from the database
+   * Equivalent to the first query in P_InformaDatosToolbar
+   */
+  loadConnectionInfo(): void {
+    this.connectionService.getConnectionInfo()
+      .pipe(
+        catchError(error => {
+          this.connectionInfo = 'CONNECTION NOT IDENTIFIED';
+          console.error('Error loading connection info:', error);
+          return of(null);
+        })
+      )
+      .subscribe(info => {
+        if (info) {
+          this.connectionInfo = info;
+        }
+      });
+  }
+
+  /**
+   * Loads the current system date from the server
+   * Equivalent to the second query in P_InformaDatosToolbar
+   */
+  loadSystemDate(): void {
+    this.connectionService.getSystemDate()
+      .pipe(
+        catchError(error => {
+          this.showError('Could not retrieve current date from database: ' + error.message);
+          return of(null);
+        })
+      )
+      .subscribe(date => {
+        if (date) {
+          this.systemDate = date;
+        }
+      });
+  }
+
+  /**
+   * Loads the current user information
+   * Equivalent to the third query in P_InformaDatosToolbar
+   */
+  loadCurrentUser(): void {
+    this.userService.getCurrentUser()
+      .pipe(
+        catchError(error => {
+          this.showError('Could not retrieve user information: ' + error.message);
+          return of(null);
+        })
+      )
+      .subscribe(user => {
+        if (user) {
+          this.currentUser = user;
+        }
+      });
+  }
+
+  /**
+   * Emits an event to toggle the sidebar menu
+   */
+  toggleMenu(): void {
+    this.menuToggle.emit();
+  }
+
+  /**
+   * Navigates to the user profile page
+   */
+  openUserProfile(): void {
+    this.router.navigate(['/profile']);
+  }
+
+  /**
+   * Logs out the current user
+   */
+  logout(): void {
+    this.userService.logout().subscribe(() => {
+      this.router.navigate(['/login']);
+    });
+  }
+
+  /**
+   * Displays an error message
+   * Equivalent to PKG_MSGS.Mensaje_Error in Oracle Forms
+   */
+  showError(message: string): void {
+    this.errorMessage = message;
+    // Optionally auto-dismiss after a timeout
+    setTimeout(() => this.dismissError(), 5000);
+  }
+
+  /**
+   * Dismisses the current error message
+   */
+  dismissError(): void {
+    this.errorMessage = '';
+  }
+}

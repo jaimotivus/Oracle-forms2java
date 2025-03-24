@@ -1,0 +1,517 @@
+// app-frontend/src/app/pages/siniestro/siniestro.component.ts
+
+import { Component, OnInit, TemplateRef, ViewChild } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
+import { MatTableDataSource } from '@angular/material/table';
+import { ActivatedRoute, Router } from '@angular/router';
+import { SiniestroService } from '../../services/siniestro.service';
+import { AuthService } from '../../services/auth.service';
+import { finalize } from 'rxjs/operators';
+
+interface Cobertura {
+  id: number;
+  ramoContable: string;
+  descRamoContable: string;
+  cobertura: string;
+  descCobertura: string;
+  sumaAsegurada: number;
+  prioridad: number;
+  reservaInicial: number;
+  ajustes: number;
+  saldo: number;
+  ajusteRva: number | null;
+  nuevoMontoAjuste: number;
+  nuevoSaldo: number;
+  mensaje: string;
+  hasError: boolean;
+  validado: boolean;
+  disabled: boolean;
+  marcaVal: string;
+}
+
+interface Reserva {
+  id: number;
+  ramoContable: string;
+  descRamoContable: string;
+  cobertura: string;
+  descCobertura: string;
+  sumaAsegurada: number;
+  reservaInicial: number;
+  ajustes: number;
+  pagos: number;
+  nuevoSaldo: number;
+  cobPrioridad: number;
+}
+
+interface SiniestroData {
+  canal: string;
+  ramo: string;
+  poliza: string;
+  certificado: string;
+  numeroSiniestro: string;
+  asegurado: string;
+  estatus: string;
+  fechaOcurrencia: Date;
+}
+
+interface AlertData {
+  title: string;
+  message: string;
+  showAccept: boolean;
+  showCancel: boolean;
+  showSi: boolean;
+}
+
+@Component({
+  selector: 'app-siniestro',
+  templateUrl: './siniestro.component.html',
+  styleUrls: ['./siniestro.component.scss']
+})
+export class SiniestroComponent implements OnInit {
+  @ViewChild('alertTemplate') alertTemplate!: TemplateRef<any>;
+
+  // Form and data properties
+  siniestroForm: FormGroup;
+  siniestroData: SiniestroData = {
+    canal: '',
+    ramo: '',
+    poliza: '',
+    certificado: '',
+    numeroSiniestro: '',
+    asegurado: '',
+    estatus: '',
+    fechaOcurrencia: new Date()
+  };
+  
+  // Table data sources
+  coberturasDataSource = new MatTableDataSource<Cobertura>([]);
+  reservaDataSource = new MatTableDataSource<Reserva>([]);
+  
+  // Table column definitions
+  displayedColumns: string[] = [
+    'ramoContable', 'cobertura', 'sumaAsegurada', 'prioridad', 
+    'reservaInicial', 'ajustes', 'saldo', 'ajusteRva', 
+    'nuevoMontoAjuste', 'nuevoSaldo', 'mensaje'
+  ];
+  
+  reservaDisplayedColumns: string[] = [
+    'ramoContable', 'cobertura', 'sumaAsegurada', 'reservaInicial', 
+    'ajustes', 'pagos', 'nuevoSaldo', 'actions'
+  ];
+  
+  // UI state properties
+  currentUser: string = '';
+  currentDate: Date = new Date();
+  connectionInfo: string = '';
+  isValidating: boolean = false;
+  showValidateButton: boolean = false;
+  canApplyAdjustments: boolean = false;
+  hasValidAdjustments: boolean = false;
+  alertData: AlertData = {
+    title: '',
+    message: '',
+    showAccept: true,
+    showCancel: false,
+    showSi: false
+  };
+  
+  // Parameters from route
+  private sucursal: number = 0;
+  private ramo: number = 0;
+  private siniestro: number = 0;
+  private remesaCarga: string = '77777';
+  private sap: number = 0;
+  private sapX: number = 0;
+
+  constructor(
+    private fb: FormBuilder,
+    private route: ActivatedRoute,
+    private router: Router,
+    private dialog: MatDialog,
+    private siniestroService: SiniestroService,
+    private authService: AuthService
+  ) {
+    this.siniestroForm = this.fb.group({
+      // Form controls will be added dynamically based on coberturas
+    });
+  }
+
+  ngOnInit(): void {
+    // Get route parameters
+    this.route.params.subscribe(params => {
+      this.sucursal = +params['sucursal'] || 0;
+      this.ramo = +params['ramo'] || 0;
+      this.siniestro = +params['siniestro'] || 0;
+      
+      // Load data if we have valid parameters
+      if (this.sucursal && this.ramo && this.siniestro) {
+        this.loadSiniestroData();
+      }
+    });
+    
+    // Get user info
+    this.currentUser = this.authService.getCurrentUser();
+    this.connectionInfo = this.authService.getConnectionInfo();
+    
+    // Check if we should show validate button (for ramo 13)
+    this.showValidateButton = this.ramo === 13;
+  }
+
+  /**
+   * Loads the siniestro data from the backend service
+   */
+  loadSiniestroData(): void {
+    this.siniestroService.getSiniestroInfo(this.sucursal, this.ramo, this.siniestro)
+      .pipe(
+        finalize(() => {
+          // After loading data, initialize the form controls for each cobertura
+          this.initializeFormControls();
+        })
+      )
+      .subscribe(
+        (data) => {
+          // Set siniestro data
+          this.siniestroData = data.siniestroInfo;
+          
+          // Set coberturas data
+          const coberturas: Cobertura[] = data.coberturas.map((item, index) => ({
+            id: index,
+            ramoContable: item.ramoContable,
+            descRamoContable: item.descRamoContable,
+            cobertura: item.cobertura,
+            descCobertura: item.descCobertura,
+            sumaAsegurada: item.sumaAsegurada,
+            prioridad: item.prioridad || 0,
+            reservaInicial: item.reservaInicial,
+            ajustes: item.ajustes,
+            saldo: item.saldo,
+            ajusteRva: null,
+            nuevoMontoAjuste: 0,
+            nuevoSaldo: item.saldo,
+            mensaje: '',
+            hasError: false,
+            validado: false,
+            disabled: false,
+            marcaVal: ''
+          }));
+          
+          this.coberturasDataSource.data = coberturas;
+          
+          // Initialize SAP values (used for LUC validation)
+          this.sap = data.sap || 0;
+          this.sapX = this.sap;
+        },
+        (error) => {
+          this.showAlert('Error', 'Error al cargar los datos del siniestro: ' + error.message, true, false, false);
+        }
+      );
+  }
+
+  /**
+   * Initializes form controls for each cobertura
+   */
+  initializeFormControls(): void {
+    const formControls: any = {};
+    
+    this.coberturasDataSource.data.forEach(cobertura => {
+      formControls[`ajusteRva_${cobertura.id}`] = [cobertura.ajusteRva, Validators.required];
+    });
+    
+    this.siniestroForm = this.fb.group(formControls);
+  }
+
+  /**
+   * Handles blur event on ajuste input fields
+   * Validates the input and updates calculated values
+   */
+  onAjusteBlur(cobertura: Cobertura): void {
+    const ajusteControl = this.siniestroForm.get(`ajusteRva_${cobertura.id}`);
+    if (!ajusteControl) return;
+    
+    const ajusteValue = ajusteControl.value;
+    
+    // Skip validation if value is null or undefined
+    if (ajusteValue === null || ajusteValue === undefined) return;
+    
+    // Update the cobertura object
+    const updatedCoberturas = [...this.coberturasDataSource.data];
+    const index = updatedCoberturas.findIndex(c => c.id === cobertura.id);
+    
+    if (index !== -1) {
+      // Basic validation
+      if (ajusteValue < 0) {
+        updatedCoberturas[index].mensaje = 'Error: No es permitido ingresar montos negativos en el ajuste.';
+        updatedCoberturas[index].hasError = true;
+        updatedCoberturas[index].validado = false;
+        updatedCoberturas[index].marcaVal = 'S';
+      } else if (ajusteValue === cobertura.saldo) {
+        updatedCoberturas[index].mensaje = `Monto de Ajuste debe ser diferente al saldo. Monto Ajustado: ${ajusteValue} Saldo: ${cobertura.saldo}`;
+        updatedCoberturas[index].hasError = true;
+        updatedCoberturas[index].validado = false;
+        updatedCoberturas[index].marcaVal = 'S';
+      } else {
+        // Calculate new values
+        updatedCoberturas[index].ajusteRva = ajusteValue;
+        updatedCoberturas[index].nuevoMontoAjuste = ajusteValue - cobertura.saldo;
+        updatedCoberturas[index].nuevoSaldo = ajusteValue;
+        updatedCoberturas[index].mensaje = '';
+        updatedCoberturas[index].hasError = false;
+        updatedCoberturas[index].validado = true;
+        updatedCoberturas[index].marcaVal = 'N';
+        
+        // Validate against suma asegurada
+        if (ajusteValue > cobertura.sumaAsegurada) {
+          updatedCoberturas[index].mensaje = `Monto de la reserva debe ser menor o igual que la suma asegurada que es de ${cobertura.sumaAsegurada}`;
+          updatedCoberturas[index].hasError = true;
+          updatedCoberturas[index].validado = false;
+          updatedCoberturas[index].marcaVal = 'S';
+        }
+      }
+      
+      // Update data source
+      this.coberturasDataSource.data = updatedCoberturas;
+      this.checkCanApplyAdjustments();
+    }
+  }
+
+  /**
+   * Validates adjustments for ramo 13 (special case)
+   * Implements the WHEN-BUTTON-PRESSED trigger from CALCULA_MT_PRIORIDAD
+   */
+  validateAdjustments(): void {
+    if (this.ramo !== 13) return;
+    
+    this.isValidating = true;
+    
+    // Reset SAP_X to SAP value
+    this.sapX = this.sap;
+    
+    // Call service to validate adjustments
+    this.siniestroService.validateAdjustments(
+      this.sucursal,
+      this.ramo,
+      this.siniestro,
+      this.coberturasDataSource.data
+    ).pipe(
+      finalize(() => {
+        this.isValidating = false;
+      })
+    ).subscribe(
+      (result) => {
+        // Update coberturas with validation results
+        const updatedCoberturas = this.coberturasDataSource.data.map(cobertura => {
+          const validationResult = result.find(r => r.id === cobertura.id);
+          if (validationResult) {
+            return {
+              ...cobertura,
+              mensaje: validationResult.mensaje || '',
+              hasError: !!validationResult.mensaje,
+              validado: !validationResult.mensaje,
+              marcaVal: validationResult.marcaVal || 'S'
+            };
+          }
+          return cobertura;
+        });
+        
+        this.coberturasDataSource.data = updatedCoberturas;
+        this.checkCanApplyAdjustments();
+      },
+      (error) => {
+        this.showAlert('Error', 'Error al validar los ajustes: ' + error.message, true, false, false);
+      }
+    );
+  }
+
+  /**
+   * Applies adjustments to the reserva table
+   * Implements the WHEN-BUTTON-PRESSED trigger from AGREGARFILA
+   */
+  applyAdjustments(): void {
+    // Check if there are valid adjustments to apply
+    const validAdjustments = this.coberturasDataSource.data.filter(c => 
+      c.validado && c.marcaVal === 'N' && c.ajusteRva !== null
+    );
+    
+    if (validAdjustments.length === 0) {
+      this.showAlert('Información', 'Se debe validar los Ajustes, previamente', true, false, false);
+      return;
+    }
+    
+    // Transform valid adjustments to reserva items
+    const reservaItems: Reserva[] = validAdjustments.map((cobertura, index) => ({
+      id: index,
+      ramoContable: cobertura.ramoContable,
+      descRamoContable: cobertura.descRamoContable,
+      cobertura: cobertura.cobertura,
+      descCobertura: cobertura.descCobertura,
+      sumaAsegurada: cobertura.sumaAsegurada,
+      reservaInicial: cobertura.reservaInicial,
+      ajustes: cobertura.ajustes,
+      pagos: 0, // This would come from the backend in a real implementation
+      nuevoSaldo: cobertura.nuevoSaldo,
+      cobPrioridad: cobertura.prioridad
+    }));
+    
+    // Update reserva data source
+    this.reservaDataSource.data = reservaItems;
+    
+    // Mark coberturas as processed
+    const updatedCoberturas = this.coberturasDataSource.data.map(cobertura => {
+      if (validAdjustments.some(v => v.id === cobertura.id)) {
+        return {
+          ...cobertura,
+          marcaVal: 'K',
+          disabled: true
+        };
+      }
+      return cobertura;
+    });
+    
+    this.coberturasDataSource.data = updatedCoberturas;
+    
+    // Update state
+    this.hasValidAdjustments = reservaItems.length > 0;
+    this.canApplyAdjustments = false;
+  }
+
+  /**
+   * Deletes a reserva item
+   */
+  deleteReserva(reserva: Reserva): void {
+    // Remove from reserva data source
+    const updatedReservas = this.reservaDataSource.data.filter(r => r.id !== reserva.id);
+    this.reservaDataSource.data = updatedReservas;
+    
+    // Re-enable the corresponding cobertura
+    const updatedCoberturas = this.coberturasDataSource.data.map(cobertura => {
+      if (cobertura.ramoContable === reserva.ramoContable && 
+          cobertura.cobertura === reserva.cobertura) {
+        return {
+          ...cobertura,
+          marcaVal: 'N',
+          disabled: false
+        };
+      }
+      return cobertura;
+    });
+    
+    this.coberturasDataSource.data = updatedCoberturas;
+    
+    // Update state
+    this.hasValidAdjustments = updatedReservas.length > 0;
+    this.checkCanApplyAdjustments();
+  }
+
+  /**
+   * Checks if adjustments can be applied
+   */
+  checkCanApplyAdjustments(): void {
+    const validAdjustments = this.coberturasDataSource.data.filter(c => 
+      c.validado && c.marcaVal === 'N' && c.ajusteRva !== null
+    );
+    
+    this.canApplyAdjustments = validAdjustments.length > 0;
+  }
+
+  /**
+   * Handles form submission
+   * Implements the KEY-COMMIT trigger
+   */
+  onSubmit(): void {
+    if (!this.siniestroForm.valid || !this.hasValidAdjustments) {
+      return;
+    }
+    
+    // Confirm submission
+    this.showConfirmDialog('Confirmar', '¿Está seguro de guardar los ajustes?').then(confirmed => {
+      if (confirmed) {
+        // Prepare data for submission
+        const adjustments = this.reservaDataSource.data.map(reserva => ({
+          sucursal: this.sucursal,
+          siniestro: this.siniestro,
+          ramoContable: reserva.ramoContable,
+          cobertura: reserva.cobertura,
+          ramo: this.ramo,
+          poliza: this.siniestroData.poliza,
+          certificado: this.siniestroData.certificado,
+          ajusteRva: reserva.nuevoSaldo,
+          prioridad: reserva.cobPrioridad
+        }));
+        
+        // Submit to backend
+        this.siniestroService.saveAdjustments(adjustments)
+          .subscribe(
+            (result) => {
+              this.showAlert('Éxito', 'Se realizó el movimiento de Ajuste de Reserva correctamente.', true, false, false);
+              setTimeout(() => {
+                this.navigateBack();
+              }, 2000);
+            },
+            (error) => {
+              this.showAlert('Error', 'Ocurrió un error al actualizar la información de los movimientos: ' + error.message, true, false, false);
+            }
+          );
+      }
+    });
+  }
+
+  /**
+   * Shows an alert dialog
+   */
+  showAlert(title: string, message: string, showAccept: boolean, showCancel: boolean, showSi: boolean): void {
+    this.alertData = {
+      title,
+      message,
+      showAccept,
+      showCancel,
+      showSi
+    };
+    
+    this.dialog.open(this.alertTemplate, {
+      width: '400px'
+    });
+  }
+
+  /**
+   * Shows a confirmation dialog
+   * Returns a promise that resolves to true if confirmed, false otherwise
+   */
+  showConfirmDialog(title: string, message: string): Promise<boolean> {
+    this.alertData = {
+      title,
+      message,
+      showAccept: false,
+      showCancel: true,
+      showSi: true
+    };
+    
+    const dialogRef = this.dialog.open(this.alertTemplate, {
+      width: '400px'
+    });
+    
+    return dialogRef.afterClosed().toPromise();
+  }
+
+  /**
+   * Navigates back to the previous page
+   */
+  navigateBack(): void {
+    this.router.navigate(['/siniestros']);
+  }
+
+  /**
+   * Cancels the current operation and navigates back
+   */
+  cancel(): void {
+    if (this.siniestroForm.dirty || this.hasValidAdjustments) {
+      this.showConfirmDialog('Confirmar', '¿Está seguro de cancelar? Se perderán los cambios no guardados.').then(confirmed => {
+        if (confirmed) {
+          this.navigateBack();
+        }
+      });
+    } else {
+      this.navigateBack();
+    }
+  }
+}
