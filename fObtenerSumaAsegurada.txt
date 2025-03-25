@@ -1,0 +1,120 @@
+  Function fObtenerSumaAsegurada (pSucursal In Number, pRamo 		 In Number, pPoliza In Number  , 
+  																pCerti    In Number, pRamoCont In Number, pCobert In Varchar2, 
+  																pFeEfec   In Date	 , pMensaje Out Varchar2) Return Boolean Is
+		lvIps    		Varchar2(10)	:= 'IPS';
+		lvIvs    		Varchar2(10)	:= 'IVS';
+		lvTipoProd	Varchar2(10)	:= NULL;	
+		leError			Exception;
+		proc        Sint_Producto_Coberturas%RowType; 
+	Begin
+	  If pRamo Not In (15,41) Then
+			If Not fObtenerFechaEfectiva (pMensaje) Then
+					:DT_COBERTURA.MSJ_VALIDA:=pMensaje; 
+			End If;
+			
+			Begin
+				Select Nvl(Carc_Mt_Suma_Asegurada,0),
+				       Carc_Capl_Cd_Plan
+				  Into :DT_GLOBAL.MT_SUMA_ASEGURADA,
+				       :DT_GLOBAL.CD_PLAN
+				  From Cart_Riesgos_Cubiertos
+			 	 Where Carc_Casu_Cd_Sucursal    = pSucursal
+			 	   And Carc_Carp_Cd_Ramo        = pRamo
+				   And Carc_Capo_Nu_Poliza      = pPoliza
+				   And Carc_Cace_Nu_Certificado = pCerti
+				   And Carc_Carb_Cd_Ramo        = pRamoCont
+				   And Carc_Cacb_Cd_Cobertura   = pCobert
+				   And Trunc(Carc_Fe_Efectiva)  = :DT_GLOBAL.SICC_CARC_FE_EFECTIVA
+				Union
+				Select Nvl(Carc_Mt_Suma_Asegurada,0),
+				       Carc_Capl_Cd_Plan
+				  From Carh_Riesgos_Cubiertos
+				 Where Carc_Casu_Cd_Sucursal    = pSucursal
+				   And Carc_Carp_Cd_Ramo        = pRamo
+				   And Carc_Capo_Nu_Poliza      = pPoliza
+				   And Carc_Cace_Nu_Certificado = pCerti
+				   And Carc_Carb_Cd_Ramo        = pRamoCont
+				   And Carc_Cacb_Cd_Cobertura   = pCobert
+				   And Trunc(Carc_Fe_Efectiva)  = :DT_GLOBAL.SICC_CARC_FE_EFECTIVA
+				   And 0 = (Select Count(*)
+				              From Cart_Riesgos_cubiertos
+				             Where Carc_Casu_Cd_Sucursal    = pSucursal
+				               And Carc_Carp_Cd_ramo        = pRamo
+				               And Carc_Capo_Nu_poliza      = pPoliza
+				               And Carc_Cace_Nu_certificado = pCerti
+				               And Trunc(Carc_Fe_Efectiva) <= :DT_GLOBAL.SICC_CARC_FE_EFECTIVA);  
+			Exception
+				When Too_Many_Rows Then
+					pMensaje := '2 - Error, se encontró mas de un registro para obtener la suma asegurada.';
+				  	:DT_COBERTURA.MSJ_VALIDA:=pMensaje; 
+				When Others Then
+				 	pMensaje := '2 - Error, al obtener la suma asegurada.';
+						:DT_COBERTURA.MSJ_VALIDA:=pMensaje; 
+			End;  
+    Else
+			/* Para los ramos Transporte Maritimo(41) y Transporte Terrestre(15)
+			  las polizas se suscriben asociando a una sola cobertura la suma
+			  asegurada, es decir, la(s) cobertura(s) asociada(s) no deben
+			  exceder al 
+			  
+			   la suma asegurada especificada en alguna
+			  de las coberturas de la poliza.*/
+			Begin
+				Select Trunc(Max(Carc_Fe_Efectiva))
+				  Into :DT_GLOBAL.SICC_CARC_FE_EFECTIVA
+				  From Carh_Riesgos_Cubiertos
+				 Where Carc_Casu_Cd_Sucursal    = pSucursal
+				   And Carc_Carp_Cd_Ramo        = pRamo 
+				   And Carc_Capo_Nu_Poliza      = pPoliza
+				   And Carc_Cace_Nu_Certificado = pCerti
+				   And Trunc(Carc_Fe_Efectiva) <= :Db_Siniestro.SISI_FE_OCURRENCIA;
+			Exception
+				When Too_Many_Rows Then
+					pMensaje := '3 - Error, se encontró mas de un resgitro para la fecha efectiva.';
+						:DT_COBERTURA.MSJ_VALIDA:=pMensaje; 
+			  When Others Then
+	   	 		pMensaje := '2 - Error, al obtener la fecha efectiva.';
+	    			:DT_COBERTURA.MSJ_VALIDA:=pMensaje; 
+			End;
+			-------------------------------------------------------------------
+	    Begin
+				Select Max(Carc_Mt_Suma_Asegurada)
+				  Into :DT_GLOBAL.MT_SUMA_ASEGURADA
+ 				  From Carh_Riesgos_Cubiertos
+				 Where Carc_Casu_Cd_Sucursal    = pSucursal
+				   And Carc_Carp_Cd_Ramo        = pRamo
+				   And Carc_Capo_Nu_Poliza      = pPoliza
+				   And Carc_Cace_Nu_Certificado = pCerti
+				   And Trunc(Carc_Fe_Efectiva)  = :DT_GLOBAL.SICC_CARC_FE_EFECTIVA;
+			Exception
+				When Too_Many_Rows Then
+				  pMensaje := '4 - Error, se encontró mas de un registro para obtener la suma asegurada.';
+				  	:DT_COBERTURA.MSJ_VALIDA := pMensaje; 
+				When Others Then
+					pMensaje := '4 - Error, al obtener la sumas asegurada.';
+						:DT_COBERTURA.MSJ_VALIDA := pMensaje; 
+			End;
+		End If;
+		
+		/* Funcionalidad LUC*/
+	  proc :=  pack_valida_luc.F_get_ProdCober(pRamo, pRamoCont, pCobert);
+	  lvTipoProd := proc.sip_cdcobertura_a;   															
+				   														
+	  If lvTipoProd IN (lvIps,lvIvs) Then    	
+	  	:DT_GLOBAL.MT_SUMA_ASEGURADA := fSumaAsegIPS(pSucursal,  
+      																						 pRamo,
+                                     						   pPoliza,  
+                                     						   pCerti,
+                                    						   pRamoCont,
+                                    						   pCobert,  
+                                    						   :DB_SINIESTRO.SISI_FE_OCURRENCIA    	,
+                                    						   lvTipoProd);
+	  End If;
+	  Return True;
+	Exception
+		When leError Then
+			Return False;
+		When Others Then
+			pMensaje := 'Error al obtener la suma asegura ['||SQLErrm||']';
+			Return False;
+	End;

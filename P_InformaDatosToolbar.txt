@@ -1,0 +1,35 @@
+/****************************************************************************************************
+* Proceso que informa los datos de usuario, fecha y base de datos conectada en el bloque TOOLBAR		*
+*****************************************************************************************************/
+Procedure P_InformaDatosToolbar Is
+Begin
+		Begin
+			Select A.Cage_Nom_Concep
+			  Into :DI_CONEXION 
+			  From Sai_Cat_General A 
+			 Where A.Cage_Cd_Catalogo = 0;
+		Exception
+		  When Others Then
+				:DI_CONEXION := 'CONECCIÓN NO IDENTIFICADA';
+		End;
+	  
+		Begin
+			Select SysDate 
+			  Into :CG$CTRL.CGC$SYSDATE 
+			  From Sys.Dual;
+		Exception
+			When Others Then
+				PKG_MSGS.Mensaje_Error('No se ha podido recuperar la fecha actual de base de datos. '||sqlerrm);
+				Return;
+		End;
+		
+		Begin
+	  	Select User 
+	  	  Into :CG$CTRL.CGC$USER 
+	  	  From Sys.Dual;
+	  Exception
+			When Others Then
+				PKG_MSGS.Mensaje_Error('No se ha podido recuperar el usuario. '||sqlerrm);
+				Return;
+		End;
+End P_InformaDatosToolbar;
