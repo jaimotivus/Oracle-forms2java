@@ -1,0 +1,713 @@
+// frontend/src/app/features/sinf/sinf.component.scss
+/**
+ * @file sinf.component.scss
+ * @brief Styles for the SINF (System Insurance Form) component.
+ *        This file defines the visual appearance of the main form, including headers,
+ *        cards, forms, grids, buttons, toolbars, modals, alerts, loading indicators,
+ *        and responsive adjustments.
+ * @dependencies:
+ *   - src/styles/_variables.scss (for colors, fonts, and spacing)
+ *   - src/styles/_mixins.scss (for reusable styles like transitions and breakpoints)
+ * @revision_history:
+ *   - 2024-01-01: Initial creation.
+ *   - 2024-01-02: Refactored to use SCSS variables and mixins.
+ *   - 2024-01-03: Added responsive styles and accessibility improvements.
+ */
+
+@import 'src/styles/_variables.scss';
+@import 'src/styles/_mixins.scss';
+
+// Main container styles
+.sinf-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  font-family: $font-family; // Use variable from _variables.scss
+}
+
+// Header styles
+.header {
+  background-color: $primary-color; // Use variable from _variables.scss
+  color: $white-color; // Use variable from _variables.scss
+  padding: $header-padding; // Use variable from _variables.scss
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  &__title {
+    font-size: $header-font-size; // Use variable from _variables.scss
+    font-weight: bold;
+    text-align: center;
+    flex: 1;
+  }
+
+  &__user-info {
+    display: flex;
+    flex-direction: column;
+    font-size: $small-font-size; // Use variable from _variables.scss
+    margin-right: $header-user-margin; // Use variable from _variables.scss
+  }
+
+  &__form-id {
+    color: $form-id-color; // Use variable from _variables.scss
+    font-weight: bold;
+    font-size: $form-id-font-size; // Use variable from _variables.scss
+  }
+}
+
+// Main content area
+.main-content {
+  background-color: $main-content-bg-color; // Use variable from _variables.scss
+  flex: 1;
+  padding: $main-content-padding; // Use variable from _variables.scss
+  overflow: auto;
+}
+
+// Card styles
+.card {
+  background-color: $white-color; // Use variable from _variables.scss
+  border-radius: $border-radius; // Use variable from _variables.scss
+  box-shadow: $card-box-shadow; // Use variable from _variables.scss
+  margin-bottom: $card-margin-bottom; // Use variable from _variables.scss
+  overflow: hidden;
+
+  &__header {
+    background-color: $card-header-bg-color; // Use variable from _variables.scss
+    color: $white-color; // Use variable from _variables.scss
+    padding: $card-header-padding; // Use variable from _variables.scss
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: $card-header-font-size; // Use variable from _variables.scss
+  }
+
+  &__content {
+    padding: $card-content-padding; // Use variable from _variables.scss
+  }
+}
+
+// Form styles
+.form-section {
+  background-color: $form-section-bg-color; // Use variable from _variables.scss
+  border: $form-section-border; // Use variable from _variables.scss
+  border-radius: $border-radius; // Use variable from _variables.scss
+  margin-bottom: $form-section-margin-bottom; // Use variable from _variables.scss
+  
+  &__header {
+    background-color: $form-section-header-bg-color; // Use variable from _variables.scss
+    color: $white-color; // Use variable from _variables.scss
+    padding: $form-section-header-padding; // Use variable from _variables.scss
+    font-weight: bold;
+    font-size: $form-section-header-font-size; // Use variable from _variables.scss
+  }
+  
+  &__content {
+    padding: $form-section-content-padding; // Use variable from _variables.scss
+    display: flex;
+    flex-wrap: wrap;
+    gap: $form-section-content-gap; // Use variable from _variables.scss
+  }
+}
+
+// Form field styles
+.form-field {
+  margin-bottom: $form-field-margin-bottom; // Use variable from _variables.scss
+  
+  &__label {
+    font-weight: bold;
+    margin-bottom: $form-field-label-margin-bottom; // Use variable from _variables.scss
+    display: block;
+    font-size: $form-field-label-font-size; // Use variable from _variables.scss
+  }
+  
+  &__input {
+    width: 100%;
+    padding: $form-field-input-padding; // Use variable from _variables.scss
+    border: $form-field-input-border; // Use variable from _variables.scss
+    border-radius: $border-radius; // Use variable from _variables.scss
+    font-size: $form-field-input-font-size; // Use variable from _variables.scss
+    
+    &:disabled {
+      background-color: $form-field-input-disabled-bg-color; // Use variable from _variables.scss
+      color: $form-field-input-disabled-color; // Use variable from _variables.scss
+    }
+    
+    &--error {
+      border-color: $error-color; // Use variable from _variables.scss
+    }
+
+    &:focus {
+      outline: none; // Remove default focus outline
+      border-color: $focus-color; // Use variable for focus color
+      box-shadow: 0 0 0 0.2rem rgba($focus-color, 0.25); // Add a subtle focus shadow
+    }
+  }
+  
+  &__error {
+    color: $error-color; // Use variable from _variables.scss
+    font-size: $form-field-error-font-size; // Use variable from _variables.scss
+    margin-top: $form-field-error-margin-top; // Use variable from _variables.scss
+  }
+}
+
+// Grid styles for the coverage table
+.coverage-grid {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: $coverage-grid-margin-bottom; // Use variable from _variables.scss
+  
+  th {
+    background-color: $coverage-grid-th-bg-color; // Use variable from _variables.scss
+    padding: $coverage-grid-th-padding; // Use variable from _variables.scss
+    text-align: left;
+    font-weight: bold;
+    border: $coverage-grid-border; // Use variable from _variables.scss
+    font-size: $coverage-grid-font-size; // Use variable from _variables.scss
+  }
+  
+  td {
+    padding: $coverage-grid-td-padding; // Use variable from _variables.scss
+    border: $coverage-grid-border; // Use variable from _variables.scss
+    font-size: $coverage-grid-font-size; // Use variable from _variables.scss
+    
+    &.numeric {
+      text-align: right;
+    }
+    
+    &.center {
+      text-align: center;
+    }
+  }
+  
+  tr {
+    &:nth-child(even) {
+      background-color: $coverage-grid-tr-even-bg-color; // Use variable from _variables.scss
+    }
+    
+    &:hover {
+      background-color: $coverage-grid-tr-hover-bg-color; // Use variable from _variables.scss
+    }
+    
+    &.selected {
+      background-color: $coverage-grid-tr-selected-bg-color; // Use variable from _variables.scss
+    }
+  }
+  
+  .editable-cell {
+    background-color: $coverage-grid-editable-cell-bg-color; // Use variable from _variables.scss
+  }
+}
+
+// Button styles
+.btn {
+  padding: $btn-padding; // Use variable from _variables.scss
+  border: none;
+  border-radius: $border-radius; // Use variable from _variables.scss
+  cursor: pointer;
+  font-weight: bold;
+  @include transition(background-color, 0.2s, ease-in-out); // Use mixin from _mixins.scss
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: $btn-margin-right; // Use variable from _variables.scss
+  
+  &__icon {
+    margin-right: $btn-icon-margin-right; // Use variable from _variables.scss
+  }
+  
+  &--primary {
+    background-color: $primary-color; // Use variable from _variables.scss
+    color: $white-color; // Use variable from _variables.scss
+    
+    &:hover {
+      background-color: darken($primary-color, 10%); // Darken color on hover
+    }
+    
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 0.2rem rgba($primary-color, 0.5);
+    }
+    
+    &:disabled {
+      background-color: $btn-disabled-bg-color; // Use variable from _variables.scss
+      cursor: not-allowed;
+    }
+  }
+  
+  &--secondary {
+    background-color: $secondary-color; // Use variable from _variables.scss
+    color: $white-color; // Use variable from _variables.scss
+    
+    &:hover {
+      background-color: darken($secondary-color, 10%); // Darken color on hover
+    }
+
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 0.2rem rgba($secondary-color, 0.5);
+    }
+  }
+  
+  &--danger {
+    background-color: $danger-color; // Use variable from _variables.scss
+    color: $white-color; // Use variable from _variables.scss
+    
+    &:hover {
+      background-color: darken($danger-color, 10%); // Darken color on hover
+    }
+
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 0.2rem rgba($danger-color, 0.5);
+    }
+  }
+}
+
+// Toolbar styles
+.toolbar {
+  display: flex;
+  padding: $toolbar-padding; // Use variable from _variables.scss
+  background-color: $toolbar-bg-color; // Use variable from _variables.scss
+  border-bottom: $toolbar-border-bottom; // Use variable from _variables.scss
+  
+  &__button {
+    background-color: $toolbar-button-bg-color; // Use variable from _variables.scss
+    color: $white-color; // Use variable from _variables.scss
+    border: none;
+    padding: $toolbar-button-padding; // Use variable from _variables.scss
+    margin-right: $toolbar-button-margin-right; // Use variable from _variables.scss
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: $border-radius; // Use variable from _variables.scss
+    
+    &:hover {
+      background-color: darken($toolbar-button-bg-color, 10%); // Darken color on hover
+    }
+    
+    &:disabled {
+      background-color: $btn-disabled-bg-color; // Use variable from _variables.scss
+      cursor: not-allowed;
+    }
+    
+    &--blue {
+      background-color: $blue-color; // Use variable from _variables.scss
+      
+      &:hover {
+        background-color: darken($blue-color, 10%); // Darken color on hover
+      }
+    }
+  }
+  
+  &__icon {
+    width: $toolbar-icon-size; // Use variable from _variables.scss
+    height: $toolbar-icon-size; // Use variable from _variables.scss
+    margin-right: $toolbar-icon-margin-right; // Use variable from _variables.scss
+  }
+}
+
+// Alert styles
+.alert {
+  padding: $alert-padding; // Use variable from _variables.scss
+  border-radius: $border-radius; // Use variable from _variables.scss
+  margin-bottom: $alert-margin-bottom; // Use variable from _variables.scss
+  
+  &--error {
+    background-color: $alert-error-bg-color; // Use variable from _variables.scss
+    color: $alert-error-color; // Use variable from _variables.scss
+    border: $alert-error-border; // Use variable from _variables.scss
+  }
+  
+  &--info {
+    background-color: $alert-info-bg-color; // Use variable from _variables.scss
+    color: $alert-info-color; // Use variable from _variables.scss
+    border: $alert-info-border; // Use variable from _variables.scss
+  }
+  
+  &--warning {
+    background-color: $alert-warning-bg-color; // Use variable from _variables.scss
+    color: $alert-warning-color; // Use variable from _variables.scss
+    border: $alert-warning-border; // Use variable from _variables.scss
+  }
+}
+
+// Specific styles for the coverage adjustment section
+.coverage-adjustment {
+  &__header {
+    background-color: $coverage-adjustment-header-bg-color; // Use variable from _variables.scss
+    color: $white-color; // Use variable from _variables.scss
+    padding: $coverage-adjustment-header-padding; // Use variable from _variables.scss
+    font-weight: bold;
+    margin-bottom: $coverage-adjustment-header-margin-bottom; // Use variable from _variables.scss
+  }
+  
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    
+    th {
+      background-color: $coverage-grid-th-bg-color; // Use variable from _variables.scss
+      padding: $coverage-grid-th-padding; // Use variable from _variables.scss
+      text-align: center;
+      font-weight: bold;
+      border: $coverage-grid-border; // Use variable from _variables.scss
+      font-size: $coverage-grid-font-size; // Use variable from _variables.scss
+    }
+    
+    td {
+      padding: $coverage-grid-td-padding; // Use variable from _variables.scss
+      border: $coverage-grid-border; // Use variable from _variables.scss
+      font-size: $coverage-grid-font-size; // Use variable from _variables.scss
+      
+      &.numeric {
+        text-align: right;
+      }
+      
+      &.center {
+        text-align: center;
+      }
+      
+      &.editable {
+        background-color: $coverage-grid-editable-cell-bg-color; // Use variable from _variables.scss
+      }
+    }
+  }
+}
+
+// Responsive styles
+@media (max-width: $breakpoint-tablet) { // Use mixin from _mixins.scss
+  .form-section__content {
+    flex-direction: column;
+  }
+  
+  .coverage-grid {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+
+    &__title {
+      margin-bottom: 0.5rem;
+    }
+
+    &__user-info {
+      margin-right: 0;
+      align-items: center;
+    }
+  }
+
+  .btn {
+    width: 100%;
+    margin-bottom: 0.5rem;
+    margin-right: 0;
+  }
+}
+
+// Specific styles for form elements from the Oracle Forms
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: $form-row-margin-bottom; // Use variable from _variables.scss
+  gap: $form-row-gap; // Use variable from _variables.scss
+  
+  &__item {
+    flex: 1;
+    min-width: $form-row-item-min-width; // Use variable from _variables.scss
+  }
+}
+
+// Styles for the priority indicator
+.priority-indicator {
+  width: $priority-indicator-size; // Use variable from _variables.scss
+  height: $priority-indicator-size; // Use variable from _variables.scss
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: $priority-indicator-margin-right; // Use variable from _variables.scss
+  
+  &--high {
+    background-color: $priority-high-color; // Use variable from _variables.scss
+  }
+  
+  &--medium {
+    background-color: $priority-medium-color; // Use variable from _variables.scss
+  }
+  
+  &--low {
+    background-color: $priority-low-color; // Use variable from _variables.scss
+  }
+}
+
+// Styles for validation messages
+.validation-message {
+  color: $error-color; // Use variable from _variables.scss
+  font-size: $validation-message-font-size; // Use variable from _variables.scss
+  margin-top: $validation-message-margin-top; // Use variable from _variables.scss
+}
+
+// Styles for the adjustment form
+.adjustment-form {
+  background-color: $adjustment-form-bg-color; // Use variable from _variables.scss
+  padding: $adjustment-form-padding; // Use variable from _variables.scss
+  border-radius: $border-radius; // Use variable from _variables.scss
+  margin-bottom: $adjustment-form-margin-bottom; // Use variable from _variables.scss
+  
+  &__title {
+    font-weight: bold;
+    margin-bottom: $adjustment-form-title-margin-bottom; // Use variable from _variables.scss
+  }
+  
+  &__fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $adjustment-form-fields-gap; // Use variable from _variables.scss
+  }
+  
+  &__actions {
+    margin-top: $adjustment-form-actions-margin-top; // Use variable from _variables.scss
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
+// Styles for the confirmation dialog
+.confirmation-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: $confirmation-dialog-bg-color; // Use variable from _variables.scss
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  
+  &__content {
+    background-color: $white-color; // Use variable from _variables.scss
+    padding: $confirmation-dialog-content-padding; // Use variable from _variables.scss
+    border-radius: $border-radius; // Use variable from _variables.scss
+    max-width: $confirmation-dialog-content-max-width; // Use variable from _variables.scss
+    width: 100%;
+  }
+  
+  &__title {
+    font-weight: bold;
+    margin-bottom: $confirmation-dialog-title-margin-bottom; // Use variable from _variables.scss
+  }
+  
+  &__message {
+    margin-bottom: $confirmation-dialog-message-margin-bottom; // Use variable from _variables.scss
+  }
+  
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: $confirmation-dialog-actions-gap; // Use variable from _variables.scss
+  }
+}
+
+// Styles for the loading indicator
+.loading-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: $loading-indicator-bg-color; // Use variable from _variables.scss
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  
+  &__spinner {
+    width: $loading-spinner-size; // Use variable from _variables.scss
+    height: $loading-spinner-size; // Use variable from _variables.scss
+    border: $loading-spinner-border; // Use variable from _variables.scss
+    border-top: $loading-spinner-border-top; // Use variable from _variables.scss
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// Specific styles for the insurance claim adjustment form
+.insurance-claim {
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $insurance-claim-header-margin-bottom; // Use variable from _variables.scss
+  }
+  
+  &__title {
+    font-size: $insurance-claim-title-font-size; // Use variable from _variables.scss
+    font-weight: bold;
+  }
+  
+  &__info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: $insurance-claim-info-gap; // Use variable from _variables.scss
+    margin-bottom: $insurance-claim-info-margin-bottom; // Use variable from _variables.scss
+  }
+  
+  &__field {
+    &-label {
+      font-weight: bold;
+      font-size: $insurance-claim-field-label-font-size; // Use variable from _variables.scss
+      margin-bottom: $insurance-claim-field-label-margin-bottom; // Use variable from _variables.scss
+    }
+    
+    &-value {
+      font-size: $insurance-claim-field-value-font-size; // Use variable from _variables.scss
+    }
+  }
+}
+
+// Specific styles for the coverage table
+.coverage-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: $coverage-table-margin-bottom; // Use variable from _variables.scss
+  
+  th {
+    background-color: $coverage-table-th-bg-color; // Use variable from _variables.scss
+    color: $white-color; // Use variable from _variables.scss
+    padding: $coverage-table-th-padding; // Use variable from _variables.scss
+    text-align: center;
+    font-weight: bold;
+    border: $coverage-table-border; // Use variable from _variables.scss
+    font-size: $coverage-table-font-size; // Use variable from _variables.scss
+  }
+  
+  td {
+    padding: $coverage-table-td-padding; // Use variable from _variables.scss
+    border: $coverage-table-border; // Use variable from _variables.scss
+    font-size: $coverage-table-font-size; // Use variable from _variables.scss
+    
+    &.numeric {
+      text-align: right;
+    }
+    
+    &.center {
+      text-align: center;
+    }
+    
+    &.editable {
+      background-color: $coverage-table-editable-bg-color; // Use variable from _variables.scss
+    }
+  }
+  
+  tr {
+    &.validated {
+      background-color: $coverage-table-tr-validated-bg-color; // Use variable from _variables.scss
+    }
+    
+    &.error {
+      background-color: $coverage-table-tr-error-bg-color; // Use variable from _variables.scss
+    }
+    
+    &.warning {
+      background-color: $coverage-table-tr-warning-bg-color; // Use variable from _variables.scss
+    }
+  }
+}
+
+// Styles for the action buttons
+.action-buttons {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: $action-buttons-margin-top; // Use variable from _variables.scss
+  gap: $action-buttons-gap; // Use variable from _variables.scss
+}
+
+// Styles for the modal dialog
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: $modal-bg-color; // Use variable from _variables.scss
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  
+  &__content {
+    background-color: $white-color; // Use variable from _variables.scss
+    padding: $modal-content-padding; // Use variable from _variables.scss
+    border-radius: $border-radius; // Use variable from _variables.scss
+    max-width: $modal-content-max-width; // Use variable from _variables.scss
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $modal-header-margin-bottom; // Use variable from _variables.scss
+    
+    &-title {
+      font-weight: bold;
+      font-size: $modal-header-title-font-size; // Use variable from _variables.scss
+    }
+    
+    &-close {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: $modal-header-close-font-size; // Use variable from _variables.scss
+    }
+  }
+  
+  &__body {
+    margin-bottom: $modal-body-margin-bottom; // Use variable from _variables.scss
+  }
+  
+  &__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: $modal-footer-gap; // Use variable from _variables.scss
+  }
+}
+
+// Styles for the tooltip
+.tooltip {
+  position: relative;
+  display: inline-block;
+  
+  &__content {
+    visibility: hidden;
+    width: $tooltip-width; // Use variable from _variables.scss
+    background-color: $tooltip-bg-color; // Use variable from _variables.scss
+    color: $white-color; // Use variable from _variables.scss
+    text-align: center;
+    border-radius: $border-radius; // Use variable from _variables.scss
+    padding: $tooltip-padding; // Use variable from _variables.scss
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: calc($tooltip-width / -2); // Center the tooltip
+    opacity: 0;
+    @include transition(opacity, 0.3s, ease-in-out); // Use mixin from _mixins.scss
+  }
+  
+  &:hover &__content {
+    visibility: visible;
+    opacity: 1;
+  }
+}

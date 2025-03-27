@@ -1,0 +1,268 @@
+// header.component.ts
+import { Component, OnInit, Input } from '@angular/core';
+import { DatePipe } from '@angular/common';
+
+/**
+ * @Component HeaderComponent
+ *
+ * This component displays the application header, including the title, form code,
+ * user information, subtitle, and a toolbar with various actions.
+ *
+ * The toolbar buttons are dynamically generated based on the `toolbarButtons` array.
+ */
+@Component({
+  selector: 'app-header',
+  templateUrl: './header.component.html',
+  styleUrls: ['./header.component.scss'],
+  providers: [DatePipe] // Add DatePipe to providers
+})
+export class HeaderComponent implements OnInit {
+  /**
+   * The main title of the application.
+   */
+  @Input() title: string | undefined;
+
+  /**
+   * The form code associated with the current view.
+   */
+  @Input() formCode: string | undefined;
+
+  /**
+   * The current user's username.
+   */
+  @Input() currentUser: string | undefined;
+
+  /**
+   * The current date.
+   */
+  @Input() currentDate: Date = new Date();
+
+  /**
+   * Information about the database connection.
+   */
+  @Input() connectionInfo: string | undefined;
+
+  /**
+   * The version of the form.
+   */
+  @Input() formVersion: string | undefined;
+
+  /**
+   * The subtitle of the current view.
+   */
+  @Input() subtitle: string | undefined;
+
+  /**
+   * Array of toolbar button configurations.
+   * Each button has an icon, aria label, title, action, and disabled state.
+   */
+  public toolbarButtons: {
+    icon: string;
+    ariaLabel: string;
+    title: string;
+    action: (() => void) | null;
+    disabled: boolean;
+  }[] = [];
+
+  constructor(private datePipe: DatePipe) {}
+
+  ngOnInit(): void {
+    this.initializeToolbarButtons();
+  }
+
+  /**
+   * Initializes the toolbar buttons with their respective icons, labels, titles, and actions.
+   * This method is called during component initialization.
+   */
+  private initializeToolbarButtons(): void {
+    this.toolbarButtons = [
+      {
+        icon: 'search',
+        ariaLabel: 'Consulta',
+        title: 'Indicar Consulta',
+        action: () => this.onSearch(),
+        disabled: false,
+      },
+      {
+        icon: 'play_arrow',
+        ariaLabel: 'Ejecutar Consulta',
+        title: 'Ejecutar Consulta',
+        action: () => this.onExecuteQuery(),
+        disabled: false,
+      },
+      {
+        icon: 'cancel',
+        ariaLabel: 'Cancelar Consulta',
+        title: 'Cancelar Consulta',
+        action: () => this.onCancelQuery(),
+        disabled: false,
+      },
+      {
+        icon: 'arrow_upward',
+        ariaLabel: 'Registro Previo',
+        title: 'Regresar el registro previo',
+        action: () => this.onPreviousRecord(),
+        disabled: false,
+      },
+      {
+        icon: 'arrow_downward',
+        ariaLabel: 'Proximo Registro',
+        title: 'Avanzar al proximo Registro',
+        action: () => this.onNextRecord(),
+        disabled: false,
+      },
+      {
+        icon: 'arrow_forward',
+        ariaLabel: 'Proximo Bloque',
+        title: 'Navegar el cursor para la proxima seccion de esta forma',
+        action: () => this.onNextBlock(),
+        disabled: false,
+      },
+      {
+        icon: 'arrow_back',
+        ariaLabel: 'Bloque Anterior',
+        title: 'Navegar el cursor para la seccion previa de esta forma',
+        action: () => this.onPreviousBlock(),
+        disabled: false,
+      },
+      {
+        icon: 'exit_to_app',
+        ariaLabel: 'Menu Anterior',
+        title: 'Salir de esta pantalla',
+        action: () => this.onExit(),
+        disabled: false,
+      },
+      {
+        icon: 'list',
+        ariaLabel: 'Lista de Valores',
+        title: 'Lista de valores validos para este campo',
+        action: () => this.onListOfValues(),
+        disabled: false,
+      },
+      {
+        icon: 'clear_all',
+        ariaLabel: 'Blanquear Registro',
+        title: 'Borrar Registro Activo',
+        action: () => this.onClearRecord(),
+        disabled: false,
+      },
+      {
+        icon: 'save',
+        ariaLabel: 'Salvar',
+        title: 'Salvar',
+        action: () => this.onSave(),
+        disabled: false,
+      },
+      {
+        icon: 'keyboard',
+        ariaLabel: 'Teclas de Funcion',
+        title: 'Muestra una lista de las teclas de funcion definidas para esta pantalla',
+        action: () => this.onFunctionKeys(),
+        disabled: false,
+      },
+      {
+        icon: 'skip_previous',
+        ariaLabel: 'Campo Anterior',
+        title: 'Navegar el cursor al campo anterior',
+        action: () => this.onPreviousField(),
+        disabled: false,
+      },
+      {
+        icon: 'skip_next',
+        ariaLabel: 'Próximo Campo',
+        title: 'Navegar al próximo campo',
+        action: () => this.onNextField(),
+        disabled: false,
+      },
+    ];
+  }
+
+  /**
+   * Formats a date object into a string representation.
+   * @param date The date to format.
+   * @returns The formatted date string, or 'N/A' if the date is invalid.
+   */
+  formatDate(date: Date | undefined): string {
+    if (!date) {
+      return 'N/A';
+    }
+
+    try {
+      return this.datePipe.transform(date, 'yyyy-MM-dd HH:mm:ss') || 'N/A'; // Use DatePipe
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'N/A';
+    }
+  }
+
+  // Toolbar Actions - Example implementations.  Replace with actual logic.
+  onSearch(): void {
+    console.log('Search action triggered');
+    // Implement search logic here
+  }
+
+  onExecuteQuery(): void {
+    console.log('Execute Query action triggered');
+    // Implement execute query logic here
+  }
+
+  onCancelQuery(): void {
+    console.log('Cancel Query action triggered');
+    // Implement cancel query logic here
+  }
+
+  onPreviousRecord(): void {
+    console.log('Previous Record action triggered');
+    // Implement previous record logic here
+  }
+
+  onNextRecord(): void {
+    console.log('Next Record action triggered');
+    // Implement next record logic here
+  }
+
+  onNextBlock(): void {
+    console.log('Next Block action triggered');
+    // Implement next block logic here
+  }
+
+  onPreviousBlock(): void {
+    console.log('Previous Block action triggered');
+    // Implement previous block logic here
+  }
+
+  onExit(): void {
+    console.log('Exit action triggered');
+    // Implement exit logic here
+  }
+
+  onListOfValues(): void {
+    console.log('List of Values action triggered');
+    // Implement list of values logic here
+  }
+
+  onClearRecord(): void {
+    console.log('Clear Record action triggered');
+    // Implement clear record logic here
+  }
+
+  onSave(): void {
+    console.log('Save action triggered');
+    // Implement save logic here
+  }
+
+  onFunctionKeys(): void {
+    console.log('Function Keys action triggered');
+    // Implement function keys logic here
+  }
+
+  onPreviousField(): void {
+    console.log('Previous Field action triggered');
+    // Implement previous field logic here
+  }
+
+  onNextField(): void {
+    console.log('Next Field action triggered');
+    // Implement next field logic here
+  }
+}

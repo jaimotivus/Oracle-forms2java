@@ -1,0 +1,701 @@
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { ActivatedRoute } from '@angular/router';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
+import { AlertDialogComponent } from '../../../shared/components/alert-dialog/alert-dialog.component';
+import { SinfService } from '../../services/sinf.service';
+import { CoverageModel } from '../../models/coverage.model';
+import { SiniestroModel } from '../../models/siniestro.model';
+import { PolizaModel } from '../../models/poliza.model';
+
+@Component({
+  selector: 'app-sinf',
+  templateUrl: './sinf.component.html',
+  styleUrls: ['./sinf.component.scss']
+})
+export class SinfComponent implements OnInit, OnDestroy {
+  // Form groups
+  siniestroForm: FormGroup;
+  polizaForm: FormGroup;
+  
+  // Form arrays
+  coveragesFormArray: FormArray;
+  reservaCoberturaFormArray: FormArray;
+  
+  // Data models
+  siniestro: SiniestroModel;
+  poliza: PolizaModel;
+  coverages: CoverageModel[] = [];
+  
+  // UI control variables
+  loading = false;
+  isEditable = true;
+  hasChanges = false;
+  
+  // Global variables (equivalent to Oracle Forms globals)
+  globalSAP = 0;
+  globalSAPX = 0;
+  globalRemesaCarga = '77777';
+  
+  // Destroy subject for unsubscribing from observables
+  private destroy$ = new Subject<void>();
+  
+  constructor(
+    private fb: FormBuilder,
+    private route: ActivatedRoute,
+    private sinfService: SinfService,
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
+  ) { }
+
+  ngOnInit(): void {
+    this.initializeForms();
+    this.loadData();
+    
+    // Set up form change detection
+    this.siniestroForm.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.hasChanges = true;
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  /**
+   * Initialize reactive forms
+   * This replaces the Oracle Forms block structure with Angular Reactive Forms
+   */
+  initializeForms(): void {
+    // Initialize siniestro form (equivalent to DB_SINIESTRO block)
+    this.siniestroForm = this.fb.group({
+      sisiCasuCdSucursal: [null, Validators.required],
+      sisiSicsCarpCdRamo: [null, Validators.required],
+      sisiNuSiniestro: [null, Validators.required],
+      sisiFEOcurrencia: [null, Validators.required],
+      dspCacnNmApellidoRazon: [''],
+      sisiStSiniestro: [null],
+      sisiDstSiniestro: ['']
+    });
+
+    // Initialize poliza form (equivalent to DB_POLIZA block)
+    this.polizaForm = this.fb.group({
+      siceCaceCasuCdSucursal: [null, Validators.required],
+      siceCaceCarpCdRamo: [null, Validators.required],
+      siceCaceCapoNuPoliza: [null, Validators.required],
+      siceCaceNuCertificado: [null, Validators.required],
+      siceNuBeneficiario: [null]
+    });
+
+    // Initialize coverages form array (equivalent to DT_COBERTURA block)
+    this.coveragesFormArray = this.fb.array([]);
+
+    // Initialize reserva cobertura form array (equivalent to DT_SINT_RESERVA_COBERTURA_CERT block)
+    this.reservaCoberturaFormArray = this.fb.array([]);
+  }
+
+  /**
+   * Load data from the backend service
+   * This replaces the Oracle Forms data retrieval logic
+   */
+  loadData(): void {
+    this.loading = true;
+    
+    // Get parameters from route (equivalent to :Parameter values in Oracle Forms)
+    const sucursal = this.route.snapshot.paramMap.get('sucursal');
+    const ramo = this.route.snapshot.paramMap.get('ramo');
+    const siniestro = this.route.snapshot.paramMap.get('siniestro');
+    
+    if (sucursal && ramo && siniestro) {
+      // Load siniestro information
+      this.sinfService.getSiniestroInfo(sucursal, ramo, siniestro)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(
+          (data) => {
+            this.siniestro = data;
+            this.updateSiniestroForm(data);
+            
+            // Load poliza information
+            this.loadPolizaInfo(data.sisiCasuCdSucursal, data.sisiNuSiniestro);
+            
+            // Load coverages
+            this.loadCoverages(data.sisiCasuCdSucursal, data.sisiNuSiniestro);
+            
+            // Calculate SAP (equivalent to :GLOBAL.SAP in Oracle Forms)
+            this.calculateSAP();
+            
+            this.loading = false;
+          },
+          (error) => {
+            this.showErrorMessage('Error al cargar información del siniestro: ' + error.message);
+            this.loading = false;
+          }
+        );
+    } else {
+      this.showErrorMessage('Parámetros insuficientes para cargar la información');
+      this.loading = false;
+    }
+  }
+
+  /**
+   * Update siniestro form with data from backend
+   * @param data The siniestro data from the backend
+   */
+  updateSiniestroForm(data: SiniestroModel): void {
+    this.siniestroForm.patchValue({
+      sisiCasuCdSucursal: data.sisiCasuCdSucursal,
+      sisiSicsCarpCdRamo: data.sisiSicsCarpCdRamo,
+      sisiNuSiniestro: data.sisiNuSiniestro,
+      sisiFEOcurrencia: data.sisiFEOcurrencia,
+      dspCacnNmApellidoRazon: data.dspCacnNmApellidoRazon,
+      sisiStSiniestro: data.sisiStSiniestro,
+      sisiDstSiniestro: data.sisiDstSiniestro
+    });
+  }
+
+  /**
+   * Load poliza information
+   * @param sucursal The sucursal ID
+   * @param siniestro The siniestro ID
+   */
+  loadPolizaInfo(sucursal: string, siniestro: string): void {
+    this.sinfService.getPolizaInfo(sucursal, siniestro)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(
+        (data) => {
+          this.poliza = data;
+          this.updatePolizaForm(data);
+        },
+        (error) => {
+          this.showErrorMessage('Error al cargar información de la póliza: ' + error.message);
+        }
+      );
+  }
+
+  /**
+   * Update poliza form with data from backend
+   * @param data The poliza data from the backend
+   */
+  updatePolizaForm(data: PolizaModel): void {
+    this.polizaForm.patchValue({
+      siceCaceCasuCdSucursal: data.siceCaceCasuCdSucursal,
+      siceCaceCarpCdRamo: data.siceCaceCarpCdRamo,
+      siceCaceCapoNuPoliza: data.siceCaceCapoNuPoliza,
+      siceCaceNuCertificado: data.siceCaceNuCertificado,
+      siceNuBeneficiario: data.siceNuBeneficiario
+    });
+  }
+
+  /**
+   * Load coverages information
+   * @param sucursal The sucursal ID
+   * @param siniestro The siniestro ID
+   */
+  loadCoverages(sucursal: string, siniestro: string): void {
+    this.sinfService.getCoverages(sucursal, siniestro)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(
+        (data) => {
+          this.coverages = data;
+          this.populateCoveragesFormArray(data);
+        },
+        (error) => {
+          this.showErrorMessage('Error al cargar coberturas: ' + error.message);
+        }
+      );
+  }
+
+  /**
+   * Populate coverages form array with data from backend
+   * @param coverages The coverages data from the backend
+   */
+  populateCoveragesFormArray(coverages: CoverageModel[]): void {
+    // Clear existing form array
+    while (this.coveragesFormArray.length !== 0) {
+      this.coveragesFormArray.removeAt(0);
+    }
+
+    // Add form groups for each coverage
+    coverages.forEach(coverage => {
+      const coverageGroup = this.fb.group({
+        carbCdRamo: [coverage.carbCdRamo],
+        carbDeRamo: [coverage.carbDeRamo],
+        cacbCdCobertura: [coverage.cacbCdCobertura],
+        cacbDeCobertura: [coverage.cacbDeCobertura],
+        siccMtSumaseg: [coverage.siccMtSumaseg],
+        siccMtReserva: [coverage.siccMtReserva],
+        siccMtAjustado: [coverage.siccMtAjustado],
+        siccMtLiquidacion: [coverage.siccMtLiquidacion],
+        mtSaldo: [coverage.mtSaldo],
+        prioridad: [coverage.prioridad],
+        ajusteReserva: [null, [Validators.min(0)]],
+        mtSaldoNvo: [coverage.mtSaldo],
+        siccMtAjustadoNvo: [coverage.siccMtAjustado],
+        siccMtAjustadoMov: [null],
+        marcaVal: [null],
+        msjValida: [null]
+      });
+
+      this.coveragesFormArray.push(coverageGroup);
+    });
+  }
+
+  /**
+   * Calculate SAP (Suma Asegurada Pendiente)
+   * This replaces the Oracle Forms global variable calculation
+   */
+  calculateSAP(): void {
+    const sucursal = this.polizaForm.get('siceCaceCasuCdSucursal').value;
+    const ramo = this.polizaForm.get('siceCaceCarpCdRamo').value;
+    const poliza = this.polizaForm.get('siceCaceCapoNuPoliza').value;
+    const certificado = this.polizaForm.get('siceCaceNuCertificado').value;
+    const fechaOcurrencia = this.siniestroForm.get('sisiFEOcurrencia').value;
+    
+    if (sucursal && ramo && poliza && certificado && fechaOcurrencia) {
+      this.sinfService.calculateRvaPendiente(sucursal, ramo, poliza, certificado, fechaOcurrencia, '10')
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(
+          (data) => {
+            this.globalSAP = data;
+            this.globalSAPX = data;
+          },
+          (error) => {
+            console.error('Error calculating SAP:', error);
+          }
+        );
+    }
+  }
+
+  /**
+   * Handle ajuste reserva validation
+   * This replaces the WHEN-VALIDATE-ITEM trigger on AJUSTE_RESERVA
+   * @param index The index of the coverage in the form array
+   */
+  validateAjusteReserva(index: number): void {
+    const coverageGroup = this.coveragesFormArray.at(index) as FormGroup;
+    const ajusteReserva = coverageGroup.get('ajusteReserva').value;
+    
+    // Clear validation message
+    coverageGroup.get('msjValida').setValue(null);
+    
+    if (ajusteReserva === null) {
+      // Assign current values
+      this.assignCurrentValues(index);
+    } else {
+      // Validate ajuste reserva
+      if (!this.validateAjusteReservaValue(index, ajusteReserva)) {
+        // If validation fails, reset the field
+        this.assignCurrentValues(index);
+      }
+    }
+  }
+
+  /**
+   * Validate ajuste reserva value
+   * @param index The index of the coverage in the form array
+   * @param ajusteReserva The ajuste reserva value to validate
+   * @returns True if validation passes, false otherwise
+   */
+  validateAjusteReservaValue(index: number, ajusteReserva: number): boolean {
+    const coverageGroup = this.coveragesFormArray.at(index) as FormGroup;
+    let message: string = null;
+    
+    if (ajusteReserva < 0) {
+      message = 'El ajuste no puede ser menor a 0(CERO)';
+      coverageGroup.get('msjValida').setValue(message);
+      coverageGroup.get('marcaVal').setValue('S');
+      return false;
+    }
+    
+    if (ajusteReserva === 0) {
+      // Show confirmation dialog
+      const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+        width: '400px',
+        data: { message: 'El Monto a ajustar es igual a cero, ¿desea continuar?' }
+      });
+      
+      dialogRef.afterClosed().subscribe(result => {
+        if (!result) {
+          return false;
+        }
+      });
+    }
+    
+    const mtSaldo = coverageGroup.get('mtSaldo').value;
+    if (ajusteReserva < 0 && Math.abs(ajusteReserva) > mtSaldo) {
+      message = 'El ajuste de menos no debe ser mayor al saldo de la reserva.';
+      coverageGroup.get('msjValida').setValue(message);
+      coverageGroup.get('marcaVal').setValue('S');
+      return false;
+    }
+    
+    // Calculate new values
+    const siccMtAjustadoMov = ajusteReserva - mtSaldo;
+    coverageGroup.get('siccMtAjustadoMov').setValue(siccMtAjustadoMov);
+    
+    const siccMtAjustado = coverageGroup.get('siccMtAjustado').value;
+    const siccMtAjustadoNvo = siccMtAjustado + siccMtAjustadoMov;
+    coverageGroup.get('siccMtAjustadoNvo').setValue(siccMtAjustadoNvo);
+    
+    coverageGroup.get('mtSaldoNvo').setValue(ajusteReserva);
+    
+    // Set validation status
+    coverageGroup.get('marcaVal').setValue('N');
+    
+    return true;
+  }
+
+  /**
+   * Assign current values to the coverage form group
+   * @param index The index of the coverage in the form array
+   */
+  assignCurrentValues(index: number): void {
+    const coverageGroup = this.coveragesFormArray.at(index) as FormGroup;
+    
+    coverageGroup.get('siccMtReservaNvo').setValue(coverageGroup.get('siccMtReserva').value);
+    coverageGroup.get('siccMtSumasegNvo').setValue(coverageGroup.get('siccMtSumaseg').value);
+    coverageGroup.get('siccMtAjustadoNvo').setValue(coverageGroup.get('siccMtAjustado').value);
+    coverageGroup.get('mtSaldoNvo').setValue(coverageGroup.get('mtSaldo').value);
+    coverageGroup.get('siccMtLiquidacionNvo').setValue(coverageGroup.get('siccMtLiquidacion').value);
+    coverageGroup.get('marcaVal').setValue('S');
+  }
+
+  /**
+   * Assign marca (mark) to coverages
+   * This replaces the pAsignaMarca procedure in PKG_AJUSTE_RESERVA
+   */
+  assignMarca(): void {
+    for (let i = 0; i < this.coveragesFormArray.length; i++) {
+      const coverageGroup = this.coveragesFormArray.at(i) as FormGroup;
+      
+      if (coverageGroup.get('siccMtAjustadoMov').value !== null && 
+          coverageGroup.get('prioridad').value !== null) {
+        coverageGroup.get('marcaVal').setValue('P');
+      } else if (coverageGroup.get('siccMtAjustadoMov').value !== null && 
+                coverageGroup.get('prioridad').value === null) {
+        coverageGroup.get('marcaVal').setValue('N');
+      } else {
+        coverageGroup.get('marcaVal').setValue('S');
+      }
+    }
+  }
+
+  /**
+   * Clean montos (amounts)
+   * This replaces the pLimpiaMontos procedure in PKG_AJUSTE_RESERVA
+   */
+  cleanMontos(): void {
+    for (let i = 0; i < this.coveragesFormArray.length; i++) {
+      const coverageGroup = this.coveragesFormArray.at(i) as FormGroup;
+      
+      coverageGroup.get('ajusteReserva').setValue(null);
+      coverageGroup.get('siccMtAjustadoNvo').setValue(null);
+      coverageGroup.get('mtSaldoNvo').setValue(null);
+      coverageGroup.get('msjValida').setValue(null);
+      coverageGroup.get('siccMtAjustadoMov').setValue(null);
+      coverageGroup.get('marcaVal').setValue(null);
+    }
+  }
+
+  /**
+   * Validate ajustes
+   * This replaces the WHEN-BUTTON-PRESSED trigger on CALCULA_MT_PRIORIDAD
+   */
+  validateAjustes(): void {
+    // Reset global SAP_X variable
+    this.globalSAPX = this.globalSAP;
+    
+    // Assign marca to coverages
+    this.assignMarca();
+    
+    // Call backend service to adjust priority
+    const sucursal = this.polizaForm.get('siceCaceCasuCdSucursal').value;
+    const ramo = this.polizaForm.get('siceCaceCarpCdRamo').value;
+    const poliza = this.polizaForm.get('siceCaceCapoNuPoliza').value;
+    const certificado = this.polizaForm.get('siceCaceNuCertificado').value;
+    const fechaOcurrencia = this.siniestroForm.get('sisiFEOcurrencia').value;
+    
+    this.sinfService.adjustPriorityR(sucursal, ramo, poliza, certificado, fechaOcurrencia)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(
+        (response) => {
+          // Update coverage form array with validation results
+          this.updateCoveragesWithValidation(response);
+        },
+        (error) => {
+          this.showErrorMessage('Error al validar ajustes: ' + error.message);
+        }
+      );
+  }
+
+  /**
+   * Update coverages with validation results
+   * @param validationResults The validation results from the backend
+   */
+  updateCoveragesWithValidation(validationResults: any): void {
+    for (let i = 0; i < this.coveragesFormArray.length; i++) {
+      const coverageGroup = this.coveragesFormArray.at(i) as FormGroup;
+      const carbCdRamo = coverageGroup.get('carbCdRamo').value;
+      const cacbCdCobertura = coverageGroup.get('cacbCdCobertura').value;
+      
+      // Find matching validation result
+      const result = validationResults.find(r => 
+        r.carbCdRamo === carbCdRamo && r.cacbCdCobertura === cacbCdCobertura);
+      
+      if (result) {
+        coverageGroup.get('msjValida').setValue(result.msjValida);
+        coverageGroup.get('marcaVal').setValue(result.marcaVal);
+      }
+    }
+  }
+
+  /**
+   * Apply ajustes
+   * This replaces the WHEN-BUTTON-PRESSED trigger on AGREGARFILA
+   */
+  applyAjustes(): void {
+    // Validate ajustes for ramo 13
+    if (this.polizaForm.get('siceCaceCarpCdRamo').value === 13) {
+      this.validateAjustes();
+    }
+    
+    // Clear reserva cobertura form array
+    while (this.reservaCoberturaFormArray.length !== 0) {
+      this.reservaCoberturaFormArray.removeAt(0);
+    }
+    
+    // Populate reserva cobertura form array with validated coverages
+    for (let i = 0; i < this.coveragesFormArray.length; i++) {
+      const coverageGroup = this.coveragesFormArray.at(i) as FormGroup;
+      
+      if (coverageGroup.get('marcaVal').value === 'K' || 
+          coverageGroup.get('marcaVal').value === 'N') {
+        
+        const reservaGroup = this.fb.group({
+          siccSicoCacbCarbCdRamo: [coverageGroup.get('carbCdRamo').value],
+          dspCarbCdRamo: [coverageGroup.get('carbDeRamo').value],
+          siccSicoCacbCdCobertura: [coverageGroup.get('cacbCdCobertura').value],
+          dspCacbDeCobertura: [coverageGroup.get('cacbDeCobertura').value],
+          siccMtSumaseg: [coverageGroup.get('siccMtSumaseg').value],
+          siccMtReserva: [coverageGroup.get('siccMtReserva').value],
+          siccMtAjustado: [coverageGroup.get('siccMtAjustadoNvo').value],
+          siccMtAjustadoMov: [coverageGroup.get('siccMtAjustadoMov').value],
+          siccMtLiquidacion: [coverageGroup.get('siccMtLiquidacion').value],
+          siccMtRechazo: [coverageGroup.get('siccMtRechazo')?.value || 0],
+          nsaldo: [coverageGroup.get('mtSaldoNvo').value],
+          cobPrioridad: [coverageGroup.get('prioridad').value]
+        });
+        
+        this.reservaCoberturaFormArray.push(reservaGroup);
+      }
+    }
+    
+    // Clean montos for all coverages
+    for (let i = 0; i < this.coveragesFormArray.length; i++) {
+      const coverageGroup = this.coveragesFormArray.at(i) as FormGroup;
+      this.cleanMontos();
+    }
+  }
+
+  /**
+   * Delete reserva cobertura
+   * This replaces the WHEN-BUTTON-PRESSED trigger on ELIMINAFILA
+   * @param index The index of the reserva cobertura in the form array
+   */
+  deleteReservaCobertura(index: number): void {
+    const reservaGroup = this.reservaCoberturaFormArray.at(index) as FormGroup;
+    const prioridad = reservaGroup.get('cobPrioridad').value;
+    
+    if (prioridad > 0) {
+      // Call backend service to delete remesa
+      const sucursal = this.polizaForm.get('siceCaceCasuCdSucursal').value;
+      const ramo = this.polizaForm.get('siceCaceCarpCdRamo').value;
+      const poliza = this.polizaForm.get('siceCaceCapoNuPoliza').value;
+      const certificado = this.polizaForm.get('siceCaceNuCertificado').value;
+      const ramoCont = reservaGroup.get('siccSicoCacbCarbCdRamo').value;
+      const cobertura = reservaGroup.get('siccSicoCacbCdCobertura').value;
+      
+      this.sinfService.deleteRemesa(sucursal, ramo, poliza, certificado, ramoCont, cobertura)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(
+          () => {
+            this.reservaCoberturaFormArray.removeAt(index);
+            this.goToFirstRecord();
+          },
+          (error) => {
+            this.showErrorMessage('Error al eliminar remesa: ' + error.message);
+          }
+        );
+    } else if (prioridad > 0 || this.isLastRecord(index)) {
+      // Call backend service to delete remesa
+      const sucursal = this.polizaForm.get('siceCaceCasuCdSucursal').value;
+      const ramo = this.polizaForm.get('siceCaceCarpCdRamo').value;
+      const poliza = this.polizaForm.get('siceCaceCapoNuPoliza').value;
+      const certificado = this.polizaForm.get('siceCaceNuCertificado').value;
+      const ramoCont = reservaGroup.get('siccSicoCacbCarbCdRamo').value;
+      const cobertura = reservaGroup.get('siccSicoCacbCdCobertura').value;
+      
+      this.sinfService.deleteRemesa(sucursal, ramo, poliza, certificado, ramoCont, cobertura)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(
+          () => {
+            this.reservaCoberturaFormArray.removeAt(index);
+            this.goToFirstRecord();
+          },
+          (error) => {
+            this.showErrorMessage('Error al eliminar remesa: ' + error.message);
+          }
+        );
+    } else {
+      this.reservaCoberturaFormArray.removeAt(index);
+      this.goToPreviousRecord(index);
+    }
+  }
+
+  /**
+   * Check if the current record is the last one
+   * @param index The index to check
+   * @returns True if it's the last record, false otherwise
+   */
+  isLastRecord(index: number): boolean {
+    return index === this.reservaCoberturaFormArray.length - 1;
+  }
+
+  /**
+   * Go to the first record
+   */
+  goToFirstRecord(): void {
+    // Implementation depends on UI requirements
+    // In this case, we'll just focus on the first element if it exists
+    if (this.reservaCoberturaFormArray.length > 0) {
+      // Focus logic would go here
+    }
+  }
+
+  /**
+   * Go to the previous record
+   * @param currentIndex The current index
+   */
+  goToPreviousRecord(currentIndex: number): void {
+    // Implementation depends on UI requirements
+    // In this case, we'll just focus on the previous element if it exists
+    if (currentIndex > 0) {
+      // Focus logic would go here
+    }
+  }
+
+  /**
+   * Save changes
+   * This replaces the KEY-COMMIT trigger
+   */
+  saveChanges(): void {
+    // Validate if there are ajustes to apply
+    if (this.reservaCoberturaFormArray.length === 0) {
+      this.showErrorMessage('Se debe validar los Ajustes, previamente');
+      return;
+    }
+    
+    // Prepare data for saving
+    const ajustesData = this.prepareAjustesData();
+    
+    // Call backend service to save ajustes
+    this.sinfService.saveAjustes(ajustesData)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(
+        (response) => {
+          const tipoMovto = response.tipoMovto;
+          const descTipoMovto = response.descTipoMovto;
+          
+          this.showSuccessMessage(`Se realizó el movimiento de ${descTipoMovto} correctamente.`);
+          this.hasChanges = false;
+          
+          // Navigate back or reload
+          // Implementation depends on application requirements
+        },
+        (error) => {
+          this.showErrorMessage('Error al guardar ajustes: ' + error.message);
+        }
+      );
+  }
+
+  /**
+   * Prepare ajustes data for saving
+   * @returns The prepared data object
+   */
+  prepareAjustesData(): any {
+    const ajustesData = {
+      sucursal: this.siniestroForm.get('sisiCasuCdSucursal').value,
+      siniestro: this.siniestroForm.get('sisiNuSiniestro').value,
+      ramo: this.polizaForm.get('siceCaceCarpCdRamo').value,
+      poliza: this.polizaForm.get('siceCaceCapoNuPoliza').value,
+      certificado: this.polizaForm.get('siceCaceNuCertificado').value,
+      ajustes: []
+    };
+    
+    // Add each reserva cobertura to the ajustes array
+    for (let i = 0; i < this.reservaCoberturaFormArray.length; i++) {
+      const reservaGroup = this.reservaCoberturaFormArray.at(i) as FormGroup;
+      
+      ajustesData.ajustes.push({
+        ramoCont: reservaGroup.get('siccSicoCacbCarbCdRamo').value,
+        cobertura: reservaGroup.get('siccSicoCacbCdCobertura').value,
+        mtAjustado: reservaGroup.get('siccMtAjustado').value,
+        mtAjustadoMov: reservaGroup.get('siccMtAjustadoMov').value,
+        prioridad: reservaGroup.get('cobPrioridad').value
+      });
+    }
+    
+    return ajustesData;
+  }
+
+  /**
+   * Show error message
+   * @param message The error message to show
+   */
+  showErrorMessage(message: string): void {
+    this.dialog.open(AlertDialogComponent, {
+      width: '400px',
+      data: { title: 'Error', message: message, type: 'error' }
+    });
+  }
+
+  /**
+   * Show success message
+   * @param message The success message to show
+   */
+  showSuccessMessage(message: string): void {
+    this.snackBar.open(message, 'Cerrar', {
+      duration: 5000,
+      panelClass: ['success-snackbar']
+    });
+  }
+
+  /**
+   * Cancel changes and exit
+   */
+  cancelAndExit(): void {
+    if (this.hasChanges) {
+      const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+        width: '400px',
+        data: { message: '¿Está seguro que desea salir sin guardar los cambios?' }
+      });
+      
+      dialogRef.afterClosed().subscribe(result => {
+        if (result) {
+          // Navigate back
+          // Implementation depends on application requirements
+        }
+      });
+    } else {
+      // Navigate back
+      // Implementation depends on application requirements
+    }
+  }
+}

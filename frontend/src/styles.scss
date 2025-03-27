@@ -1,0 +1,576 @@
+/* styles.scss - Global styles for the Angular application */
+
+/**
+ * This file defines global styles for the Angular application, including:
+ * - Angular Material theming configuration
+ * - Custom color palettes based on Oracle Forms legacy colors
+ * - Global variables for colors, fonts, and spacing
+ * - Base styles for HTML elements
+ * - Component-specific styles (buttons, forms, tables, alerts, toolbars, etc.)
+ * - Utility classes for common styling needs
+ * - Accessibility focus styles
+ * - Print styles
+ *
+ *  Important: This file is intended to be imported into the main Angular application.
+ *  To ensure proper theming, include the necessary Angular Material modules in your
+ *  application's module file (app.module.ts).
+ *
+ *  For maintainability, consider breaking this file into smaller partials as the
+ *  application grows.
+ */
+
+// Import Angular Material theming
+@import '~@angular/material/theming';
+@import 'variables'; // Import variables partial
+@import 'mixins';    // Import mixins partial
+
+// Include core Angular Material styles
+@include mat-core();
+
+// Define the color palette based on the Oracle Forms colors
+// These palettes are used to create the Angular Material theme.
+$primary-palette: (
+  50: #e3f2fd,
+  100: #bbdefb,
+  200: #90caf9,
+  300: #64b5f6,
+  400: #42a5f5,
+  500: #2196f3, // Primary color (similar to darkcyan in the original)
+  600: #1e88e5,
+  700: #1976d2,
+  800: #1565c0,
+  900: #0d47a1,
+  contrast: (
+    50: rgba(0, 0, 0, 0.87),
+    100: rgba(0, 0, 0, 0.87),
+    200: rgba(0, 0, 0, 0.87),
+    300: rgba(0, 0, 0, 0.87),
+    400: rgba(0, 0, 0, 0.87),
+    500: white,
+    600: white,
+    700: white,
+    800: white,
+    900: white,
+  )
+);
+
+$accent-palette: (
+  50: #e0f7fa,
+  100: #b2ebf2,
+  200: #80deea,
+  300: #4dd0e1,
+  400: #26c6da,
+  500: #00bcd4, // Accent color
+  600: #00acc1,
+  700: #0097a7,
+  800: #00838f,
+  900: #006064,
+  contrast: (
+    50: rgba(0, 0, 0, 0.87),
+    100: rgba(0, 0, 0, 0.87),
+    200: rgba(0, 0, 0, 0.87),
+    300: rgba(0, 0, 0, 0.87),
+    400: rgba(0, 0, 0, 0.87),
+    500: white,
+    600: white,
+    700: white,
+    800: white,
+    900: white,
+  )
+);
+
+$warn-palette: (
+  50: #ffebee,
+  100: #ffcdd2,
+  200: #ef9a9a,
+  300: #e57373,
+  400: #ef5350,
+  500: #f44336, // Warning color (similar to red in the original)
+  600: #e53935,
+  700: #d32f2f,
+  800: #c62828,
+  900: #b71c1c,
+  contrast: (
+    50: rgba(0, 0, 0, 0.87),
+    100: rgba(0, 0, 0, 0.87),
+    200: rgba(0, 0, 0, 0.87),
+    300: rgba(0, 0, 0, 0.87),
+    400: rgba(0, 0, 0, 0.87),
+    500: white,
+    600: white,
+    700: white,
+    800: white,
+    900: white,
+  )
+);
+
+// Create the theme
+$app-primary: mat-palette($primary-palette);
+$app-accent: mat-palette($accent-palette);
+$app-warn: mat-palette($warn-palette);
+
+// Define the theme.  You can choose between mat-light-theme and mat-dark-theme
+$app-theme: mat-light-theme($app-primary, $app-accent, $app-warn);
+
+// Apply the theme
+@include angular-material-theme($app-theme);
+
+// Apply typography styles to the body
+@include mat-base-typography();
+@include mat-typography-level(body, 16px, 400, 1.5);
+
+// Apply custom theme to components
+@include app-component-theme($app-theme);
+
+// Global styles
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-normal);
+  color: var(--black-color);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// Typography styles based on the Oracle Forms font settings
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-family-headings);
+  font-weight: bold;
+  margin-bottom: var(--spacing-md);
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+}
+
+h3 {
+  font-size: var(--font-size-h3);
+}
+
+h4 {
+  font-size: var(--font-size-h4);
+}
+
+h5 {
+  font-size: var(--font-size-h5);
+}
+
+h6 {
+  font-size: var(--font-size-h6);
+}
+
+// Form elements styling
+.form-container {
+  padding: var(--spacing-md);
+  background-color: var(--white-color);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--box-shadow-md);
+}
+
+.form-field {
+  margin-bottom: var(--spacing-md);
+}
+
+.form-label {
+  font-weight: bold;
+  margin-bottom: var(--spacing-xs);
+  display: block;
+}
+
+// Button styles based on Oracle Forms buttons
+.btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--border-radius-sm);
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+
+  &:hover {
+    @include hover-state;
+  }
+
+  &:focus {
+    @include focus-state;
+  }
+
+  &:disabled {
+    @include disabled-state;
+  }
+}
+
+.btn-primary {
+  background-color: mat-color($app-primary);
+  color: mat-color($app-primary, default-contrast);
+
+  &:hover {
+    background-color: darken(mat-color($app-primary), 10%);
+  }
+}
+
+.btn-secondary {
+  background-color: mat-color($app-accent);
+  color: mat-color($app-accent, default-contrast);
+
+  &:hover {
+    background-color: darken(mat-color($app-accent), 10%);
+  }
+}
+
+.btn-warn {
+  background-color: mat-color($app-warn);
+  color: mat-color($app-warn, default-contrast);
+
+  &:hover {
+    background-color: darken(mat-color($app-warn), 10%);
+  }
+}
+
+.btn-icon {
+  .mat-icon {
+    margin-right: var(--spacing-xs);
+  }
+}
+
+// Toolbar styles based on Oracle Forms toolbar
+.app-toolbar {
+  background-color: mat-color($app-primary);
+  color: mat-color($app-primary, default-contrast);
+  padding: var(--spacing-sm) var(--spacing-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--box-shadow-sm);
+
+  .toolbar-title {
+    font-family: var(--font-family-headings);
+    font-size: var(--font-size-medium);
+    font-weight: bold;
+  }
+
+  .toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  .user-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    font-size: var(--font-size-small);
+  }
+}
+
+// Frame styles based on Oracle Forms frames
+.app-frame {
+  border: 1px solid var(--light-gray-color);
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  background-color: var(--white-color);
+
+  .frame-title {
+    font-family: var(--font-family-headings);
+    font-size: var(--font-size-normal);
+    font-weight: bold;
+    margin-bottom: var(--spacing-sm);
+  }
+}
+
+// Table styles for grid data
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--spacing-md);
+  border: 1px solid var(--light-gray-color); // Added border for better visual separation
+
+  th, td {
+    padding: var(--spacing-sm);
+    text-align: left;
+    border-bottom: 1px solid var(--light-gray-color);
+  }
+
+  th {
+    font-weight: bold;
+    background-color: var(--light-gray-color);
+  }
+
+  tr:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+  }
+}
+
+// Alert styles based on Oracle Forms alerts
+.alert {
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-sm);
+  margin-bottom: var(--spacing-md);
+  position: relative;
+
+  &.alert-info {
+    background-color: lighten(mat-color($app-primary, 500), 40%);
+    border: 1px solid mat-color($app-primary, 300);
+    color: mat-color($app-primary, 900);
+  }
+
+  &.alert-warning {
+    background-color: lighten(mat-color($app-warn, 500), 40%);
+    border: 1px solid mat-color($app-warn, 300);
+    color: mat-color($app-warn, 900);
+  }
+
+  &.alert-error {
+    background-color: mat-color($app-warn, 50);
+    border: 1px solid mat-color($app-warn, 200);
+    color: mat-color($app-warn, 900);
+  }
+
+  // Close button for alerts
+  .close-button {
+    position: absolute;
+    top: var(--spacing-xs);
+    right: var(--spacing-xs);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: var(--font-size-large);
+    color: inherit; // Inherit color from the alert
+    opacity: 0.6;
+    transition: opacity 0.3s ease;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
+// Input field styles
+.input-field {
+  width: 100%;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--light-gray-color);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-normal);
+  transition: border-color 0.3s ease;
+
+  &:focus {
+    outline: none;
+    border-color: mat-color($app-primary);
+  }
+
+  &:disabled {
+    background-color: var(--light-gray-color);
+    cursor: not-allowed;
+  }
+
+  &.ng-invalid.ng-touched {
+    border-color: mat-color($app-warn);
+  }
+}
+
+// Validation error messages
+.error-message {
+  color: mat-color($app-warn);
+  font-size: var(--font-size-small);
+  margin-top: var(--spacing-xs);
+}
+
+// Responsive grid layout
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 calc(var(--spacing-md) * -1); // Corrected margin to use spacing variable
+}
+
+.col {
+  padding: 0 var(--spacing-md); // Corrected padding to use spacing variable
+  flex: 1;
+  box-sizing: border-box; // Added box-sizing for consistent width calculation
+
+  @media (max-width: 768px) {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}
+
+// Specific styles for reservation adjustment form
+.reservation-adjustment-form {
+  .form-header {
+    background-color: var(--gray48-color);
+    color: var(--white-color);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius-sm) var(--border-radius-sm) 0 0;
+    font-weight: bold;
+  }
+
+  .form-content {
+    padding: var(--spacing-md);
+    border: 1px solid var(--light-gray-color);
+    border-radius: 0 0 var(--border-radius-sm) var(--border-radius-sm);
+  }
+
+  .form-section {
+    margin-bottom: var(--spacing-md);
+
+    &-title {
+      font-weight: bold;
+      margin-bottom: var(--spacing-sm);
+      border-bottom: 1px solid var(--light-gray-color);
+      padding-bottom: var(--spacing-xs);
+    }
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+  }
+}
+
+// Custom styles for numeric inputs
+.numeric-input {
+  text-align: right;
+}
+
+// Custom styles for date inputs
+.date-input {
+  width: 100%;
+}
+
+// Custom styles for readonly displays
+.readonly-display {
+  padding: var(--spacing-sm);
+  background-color: var(--light-gray-color);
+  border-radius: var(--border-radius-sm);
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  word-break: break-word; // Prevent overflow for long text
+}
+
+// Custom styles for the coverage table
+.coverage-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th, td {
+    padding: var(--spacing-sm);
+    text-align: left;
+    border-bottom: 1px solid var(--light-gray-color);
+  }
+
+  th {
+    font-weight: bold;
+    background-color: var(--light-gray-color);
+  }
+
+  .coverage-row {
+    &.validated {
+      background-color: rgba(76, 175, 80, 0.1);
+    }
+
+    &.error {
+      background-color: rgba(244, 67, 54, 0.1);
+    }
+
+    &.warning {
+      background-color: rgba(255, 152, 0, 0.1);
+    }
+  }
+
+  .coverage-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+  }
+}
+
+// Utility classes
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.font-bold {
+  font-weight: bold;
+}
+
+.mt-1 {
+  margin-top: var(--spacing-xs);
+}
+
+.mt-2 {
+  margin-top: var(--spacing-sm);
+}
+
+.mt-3 {
+  margin-top: var(--spacing-md);
+}
+
+.mb-1 {
+  margin-bottom: var(--spacing-xs);
+}
+
+.mb-2 {
+  margin-bottom: var(--spacing-sm);
+}
+
+.mb-3 {
+  margin-bottom: var(--spacing-md);
+}
+
+.p-1 {
+  padding: var(--spacing-xs);
+}
+
+.p-2 {
+  padding: var(--spacing-sm);
+}
+
+.p-3 {
+  padding: var(--spacing-md);
+}
+
+// Accessibility focus styles
+:focus {
+  @include focus-state;
+}
+
+// Print styles
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    font-size: 12pt;
+  }
+
+  .app-toolbar,
+  .form-actions {
+    display: none !important;
+  }
+
+  .form-container {
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+}
